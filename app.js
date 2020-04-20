@@ -36,4 +36,24 @@ function processApi(req, res) {
     res.end(JSON.stringify(obj));
 }
 
-createSpaServer(PORT, processApi);
+let srv = createSpaServer(PORT, processApi);
+
+const WebSocket = require('ws');
+const wss = new WebSocket.Server({ server: srv });
+wss.on('connection', ws => {
+    ws.on('message', message => { //prijem zprav
+        console.log(`Přijatá zpráva: ${message}`);
+    });
+});
+let counter = 0;
+function broadcast() {
+    counter++;
+    //odeslani zpravy vsem pripojenym klientum
+    wss.clients.forEach(function each(client) {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(counter);
+        }
+    });
+}
+setInterval(broadcast, 1000);
+
