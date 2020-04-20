@@ -1,6 +1,10 @@
 const createSpaServer = require("spaserver").createSpaServer;
 const apiDenVTydnu = require('./api-denvtydnu').apiDenVTydnu;
 const apiCas = require('./api-cas').apiCas;
+const apiHraci = require('./api-hraci').apiHraci;
+
+const najdiHrace = require('./api-hraci').hrac;
+const vsichniHraci = require('./api-hraci').hraci;
 
 const PORT = 8080; //aplikace na Rosti.cz musi bezet na portu 8080
 const API_HEAD = {
@@ -19,6 +23,8 @@ function processApi(req, res) {
         apiDenVTydnu(req, res, obj);
     } else if (req.pathname === "/cas") {
         apiCas(req, res, obj);
+    } else if (req.pathname.startsWith("/hraci")) {
+        apiHraci(req, res, obj);
     } else {
         obj.status = API_STATUS_NOT_FOUND;
         obj.error = "API not found";
@@ -33,17 +39,22 @@ const wss = new WebSocket.Server({ server: srv });
 wss.on('connection', ws => {
     ws.on('message', message => { //prijem zprav
         console.log(`Přijatá zpráva: ${message}`);
+        let posunHrace = JSON.parse(message);
+        let hrac = najdiHrace(posunHrace.uid);
+        if (posunHrace.up) hrac.y -= 2;
+        if (posunHrace.down) hrac.y += 2;
+        if (posunHrace.left) hrac.x -= 2;
+        if (posunHrace.right) hrac.x += 2;
     });
 });
-let counter = 0;
 function broadcast() {
-    counter++;
+    let json = JSON.stringify(vsichniHraci());
     //odeslani zpravy vsem pripojenym klientum
     wss.clients.forEach(function each(client) {
         if (client.readyState === WebSocket.OPEN) {
-            client.send(counter);
+            client.send(json);
         }
     });
 }
-setInterval(broadcast, 1000);
+setInterval(broadcast, 10);
 

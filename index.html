@@ -31,31 +31,87 @@
             });
         }
 
+
         let connection;
-        function posliWsZpravu() {
-            connection.send("kuk!");
+        let cnv,ctx;
+        let hrac = {};
+        hrac.up = false;
+        hrac.down = false;
+        hrac.left = false;
+        hrac.right = false;
+        function pripojitDoHry() {
+            let jm = document.getElementById("jmeno").value;
+            let url = `${HOST}/hraci/pripojit?jmeno=`+jm;
+            fetch(url).then(function (response) {
+                response.text().then(function (text) {
+                    let obj = JSON.parse(text);
+                    hrac.uid = obj.uid;
+                    console.log("uid: "+hrac.uid);
+                    setInterval(posliPosunHrace, 10);
+                }).catch((error) => {
+                    ukazChybu(error);
+                });
+            });
         }
         function spustPoNacteni() {
             ukazDen();
 
+            cnv = document.getElementById("platno");
+            ctx = cnv.getContext("2d");
+
             connection = new WebSocket(WS_HOST);
             connection.onmessage = e => {
-                console.log(e.data);
+                let hraci = JSON.parse(e.data);
+                ctx.clearRect(0,0,cnv.width,cnv.height);
+                for (let h of hraci) {
+                    ctx.beginPath();
+                    ctx.fillStyle = h.c;
+                    ctx.arc(h.x,h.y,h.r,0,6.29);
+                    ctx.fill();
+                    ctx.strokeStyle = "black";
+                    ctx.strokeText(h.jmeno, h.x+h.r, h.y);
+                }
             };
-            setInterval(posliWsZpravu, 1000);
 
         }
-
+        function posliPosunHrace() {
+            if (hrac.up || hrac.down || hrac.left || hrac.right) { //aby se zbytecne neposilalo
+                connection.send(JSON.stringify(hrac));
+            }
+        }
+        function setMove(event, onoff) {
+            if (event.key === "ArrowUp") {
+                hrac.up = onoff;
+            }
+            if (event.key === "ArrowDown") {
+                hrac.down = onoff;
+            }
+            if (event.key === "ArrowLeft") {
+                hrac.left = onoff;
+            }
+            if (event.key === "ArrowRight") {
+                hrac.right = onoff;
+            }
+        }
+        function onKeyDown(event) {
+            setMove(event, true);
+        }
+        function onKeyUp(event) {
+            setMove(event, false);
+        }
     </script>
 </head>
-<body onload="spustPoNacteni()">
+<body onload="spustPoNacteni()" onkeydown="onKeyDown(event)" onkeyup="onKeyUp(event)">
 
 <h1>Příklad použití modulu <a href="https://github.com/liborsvejda/spaserver" target="_blank">spaserver</a></h1>
 
 Dnes je <span id="den">...</span> <span id="datum">...</span>.
 <br><br>
-<img src="res/nodejs.png" title="obrázek">
+<img src="res/nodejs.png" height="32" title="obrázek">
+<br><br>
 
+Jméno: <input type="text" id="jmeno"><input type="button" value="Připojit do hry" onclick="pripojitDoHry()"><br>
+<canvas id="platno" width="800" height="600" style="background-color: #d0d0d0"></canvas>
 
 </body>
 </html>
