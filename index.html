@@ -59,10 +59,13 @@
             cnv = document.getElementById("platno");
             ctx = cnv.getContext("2d");
 
-            connection = new WebSocket(WS_HOST);
+            connection = new WebSocket(WS_HOST); //sestavi se pripojeni
             connection.onmessage = e => {
+                //ze serveru chodi jediny typ zpravy, a to seznam vsech hracu jako JSON
                 let hraci = JSON.parse(e.data);
+                //vycisti se hraci plocha
                 ctx.clearRect(0,0,cnv.width,cnv.height);
+                //prekresli se vsichni hraci
                 for (let h of hraci) {
                     ctx.beginPath();
                     ctx.fillStyle = h.c;
@@ -76,7 +79,7 @@
         }
         function posliPosunHrace() {
             if (hrac.up || hrac.down || hrac.left || hrac.right) { //aby se zbytecne neposilalo
-                connection.send(JSON.stringify(hrac));
+                connection.send(JSON.stringify(hrac)); //posle se na server informace o posunu hrace
             }
         }
         function setMove(event, onoff) {

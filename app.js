@@ -5,6 +5,7 @@ const apiHraci = require('./api-hraci').apiHraci;
 
 const najdiHrace = require('./api-hraci').hrac;
 const vsichniHraci = require('./api-hraci').hraci;
+const uidVsechHracu = require('./api-hraci').uids;
 
 const PORT = 8080; //aplikace na Rosti.cz musi bezet na portu 8080
 const API_HEAD = {
@@ -45,6 +46,14 @@ wss.on('connection', ws => {
         if (posunHrace.down) hrac.y += 2;
         if (posunHrace.left) hrac.x -= 2;
         if (posunHrace.right) hrac.x += 2;
+        //kontrola doteku s hranou
+        //TODO levy okraj, pravy okraj, horni okraj, dolni okraj
+        //kontrola doteku s jinymi hraci
+        for (let uid of uidVsechHracu()) { //projdu vsechny uid hracu
+            if (uid === posunHrace.uid) continue; //pokud je to stejny hrac, kterym se posunulo, tak pokracuju na dalsiho hrace
+            let h = najdiHrace(uid);
+            //TODO kdyz vzdalenost stredu hracu je mensi nez soucet jejich polomeru, tak doslo k doteku
+        }
     });
 });
 function broadcast() {
