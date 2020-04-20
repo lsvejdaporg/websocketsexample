@@ -46,78 +46,6 @@
 
         }
 
-        function dbTridy() {
-            let url = `${HOST}/db/tridy`;
-            fetch(url).then(function (response) {
-                response.text().then(function (text) {
-                    let obj = JSON.parse(text);
-                    if (obj.error) {
-                        alert(obj.error);
-                        let s = `<a href="./db-setup/index.html" target="_blank">Příprava databáze</a>`;
-                        document.getElementById("div_tridy").innerHTML = s;
-                    } else {
-                        let s = `Třídy: <select id="tridy" onchange="dbStudenti()">`;
-                        s += `<option value="-">- nic -</option>`;
-                        s += `<option value="">Vše</option>`;
-                        for (let t of obj.tridy) {
-                            s += `<option value="${t.id}">${t.rocnik}.${t.oznaceni}</option>`;
-                        }
-                        s += `</select>`;
-                        s += `&nbsp;&nbsp;&nbsp;<input type="text" id="vyhledat"><input type="button" value="Vyhledat" onclick="dbStudenti()">`;
-                        document.getElementById("div_tridy").innerHTML = s;
-                    }
-                }).catch((error) => {
-                    ukazChybu(error);
-                });
-            });
-        }
-        function smazStudenta(id) {
-            let url = `${HOST}/db/smazStudenta?id=${id}`;
-            fetch(url).then(function (response) {
-                response.text().then(function (text) {
-                    let obj = JSON.parse(text);
-                    if (obj.error) {
-                        document.getElementById("div_studenti").innerHTML = obj.error;
-                    } else {
-                        dbStudenti();
-                    }
-                }).catch((error) => {
-                    ukazChybu(error);
-                });
-            });
-        }
-        function dbStudenti() {
-            let url = `${HOST}/db/studenti?`;
-            let t = document.getElementById("tridy").value;
-            if (t == "-") { //nic
-                document.getElementById("div_studenti").innerHTML = "";
-                return;
-            }
-            if (t) {
-                url += "&trida=" + t;
-            }
-            let txt = document.getElementById("vyhledat").value;
-            if (txt) {
-                url += "&text=" + txt;
-            }
-            fetch(url).then(function (response) {
-                response.text().then(function (text) {
-                    let obj = JSON.parse(text);
-                    if (obj.error) {
-                        document.getElementById("div_studenti").innerHTML = obj.error;
-                    } else {
-                        let s = ``;
-                        for (let st of obj.studenti) {
-                            s += `[<a href="JavaScript:smazStudenta(${st.id})">X</a>] ${st.prijmeni} ${st.jmeno} (${st.rocnik}.${st.oznaceni_tridy}) ${st.cislo_podle_tridnice}<br>`;
-                        }
-                        document.getElementById("div_studenti").innerHTML = s;
-                    }
-                }).catch((error) => {
-                    ukazChybu(error);
-                });
-            });
-        }
-
     </script>
 </head>
 <body onload="spustPoNacteni()">
@@ -128,10 +56,6 @@ Dnes je <span id="den">...</span> <span id="datum">...</span>.
 <br><br>
 <img src="res/nodejs.png" title="obrázek">
 
-<h2>Příklad použití MySQL - školní třídy a studenti</h2>
-
-<div id="div_tridy"><input type="button" value="Načti třídy" onclick="dbTridy()"></div>
-<div id="div_studenti"></div>
 
 </body>
 </html>
