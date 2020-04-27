@@ -35,11 +35,15 @@ function processApi(req, res) {
 
 let srv = createSpaServer(PORT, processApi);
 
+//WebSockets, posun hracu,...
+let baba = null; //hrac, ktery ma babu
+let imunita = 0; //cas, do kdy plati imunita pro predani baby
+
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({ server: srv });
 wss.on('connection', ws => {
     ws.on('message', message => { //prijem zprav
-        console.log(`Přijatá zpráva: ${message}`);
+        // console.log(`Přijatá zpráva: ${message}`);
         let posunHrace = JSON.parse(message);
         let hrac = najdiHrace(posunHrace.uid);
         if (posunHrace.up) hrac.y -= 2;
@@ -47,16 +51,49 @@ wss.on('connection', ws => {
         if (posunHrace.left) hrac.x -= 2;
         if (posunHrace.right) hrac.x += 2;
         //kontrola doteku s hranou
-        //TODO levy okraj, pravy okraj, horni okraj, dolni okraj
+        if (hrac.x < hrac.r) { //levy okraj
+            hrac.x = hrac.r;
+        }
+        if (hrac.x > 800-hrac.r) { //pravy okraj (800 je sirka platna - lepsi by byla konstanta nebo parametr hry)
+            hrac.x = 800-hrac.r;
+        }
+        if (hrac.y < hrac.r) { //horni okraj
+            hrac.y = hrac.r;
+        }
+        if (hrac.y > 600-hrac.r) { //dolni okraj (800 je vyska platna - lepsi by byla konstanta nebo parametr hry)
+            hrac.y = 600-hrac.r;
+        }
         //kontrola doteku s jinymi hraci
-        for (let uid of uidVsechHracu()) { //projdu vsechny uid hracu
-            if (uid === posunHrace.uid) continue; //pokud je to stejny hrac, kterym se posunulo, tak pokracuju na dalsiho hrace
-            let h = najdiHrace(uid);
-            //TODO kdyz vzdalenost stredu hracu je mensi nez soucet jejich polomeru, tak doslo k doteku
+        let tm = new Date().getTime();
+        if (tm > imunita) {
+            for (let uid of uidVsechHracu()) { //projdu vsechny uid hracu
+                if (uid === posunHrace.uid) continue; //pokud je to stejny hrac, kterym se posunulo, tak pokracuju na dalsiho hrace
+                let h = najdiHrace(uid);
+                let dx = hrac.x - h.x; //vodorovna vzdalenost stredu
+                let dy = hrac.y - h.y; //svisla vzdalenost stredu
+                let l = Math.sqrt(dx*dx + dy*dy); //prima vzdalenost stredu
+                if (l <= hrac.r + h.r) {
+                    if (hrac.baba || h.baba) { //pokud ma jeden z hracu babu, tak si ji vymeni
+                        hrac.baba = !hrac.baba;
+                        h.baba = !h.baba;
+                        //nastavi se nove promenna baba
+                        if (hrac.baba) {
+                            baba = hrac;
+                        } else {
+                            baba = h;
+                        }
+                        imunita = tm + 2000; //a nastavi se cas, kdy babu neni mozne predat
+                    }
+                }
+            }
         }
     });
 });
+
+let broadcasting = false;
 function broadcast() {
+    if (broadcasting) return; //pokud nedobehl predchozi brodcast
+    broadcasting = true;
     let json = JSON.stringify(vsichniHraci());
     //odeslani zpravy vsem pripojenym klientum
     wss.clients.forEach(function each(client) {
@@ -64,6 +101,22 @@ function broadcast() {
             client.send(json);
         }
     });
+    broadcasting = false;
 }
 setInterval(broadcast, 10);
+
+function babaTimer() {
+    if (baba) { //pokud je nastavena promenna baba, zvysim cas
+        baba.bCas++;
+    } else { //pokud neni (coz je na zacatku hry), tak hrace s babou najdu a nastavim promennou baba
+        for (let uid of uidVsechHracu()) { //projdu vsechny uid hracu
+            let h = najdiHrace(uid);
+            if (h.baba) {
+                baba = h;
+                break;
+            }
+        }
+    }
+}
+setInterval(babaTimer, 1000);
 

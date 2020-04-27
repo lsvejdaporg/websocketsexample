@@ -18,22 +18,8 @@
             alert(s);
         }
 
-        function ukazDen() {
-            let url = `${HOST}/denvtydnu`;
-            fetch(url).then(function (response) {
-                response.text().then(function (text) {
-                    let obj = JSON.parse(text);
-                    document.getElementById("den").innerHTML = obj.den.toLowerCase();
-                    document.getElementById("datum").innerHTML = obj.datum;
-                }).catch((error) => {
-                    ukazChybu(error);
-                });
-            });
-        }
-
-
         let connection;
-        let cnv,ctx;
+        let cnv,ctx,intervalHandle;
         let hrac = {};
         hrac.up = false;
         hrac.down = false;
@@ -41,20 +27,25 @@
         hrac.right = false;
         function pripojitDoHry() {
             let jm = document.getElementById("jmeno").value;
-            let url = `${HOST}/hraci/pripojit?jmeno=`+jm;
+            let url = `${HOST}/hraci/pripojit?jmeno=${jm}`;
             fetch(url).then(function (response) {
                 response.text().then(function (text) {
                     let obj = JSON.parse(text);
                     hrac.uid = obj.uid;
                     console.log("uid: "+hrac.uid);
-                    setInterval(posliPosunHrace, 10);
+                    //odchytavani stisku klaves
+                    document.addEventListener("keydown", onKeyDown);
+                    document.addEventListener("keyup", onKeyUp);
+                    //odesilani aktivit hrace
+                    clearInterval(intervalHandle);
+                    intervalHandle = setInterval(posliPosunHrace, 10);
                 }).catch((error) => {
                     ukazChybu(error);
                 });
             });
         }
         function spustPoNacteni() {
-            ukazDen();
+            document.getElementById("jmeno").addEventListener("keyup", onKeyUpJmeno);
 
             cnv = document.getElementById("platno");
             ctx = cnv.getContext("2d");
@@ -72,7 +63,10 @@
                     ctx.arc(h.x,h.y,h.r,0,6.29);
                     ctx.fill();
                     ctx.strokeStyle = "black";
-                    ctx.strokeText(h.jmeno, h.x+h.r, h.y);
+                    if (h.baba) {
+                        ctx.stroke();
+                    }
+                    ctx.strokeText(h.jmeno + " ("+h.bCas+"s)", h.x+h.r, h.y);
                 }
             };
 
@@ -83,6 +77,7 @@
             }
         }
         function setMove(event, onoff) {
+            //kurzorove klavesy
             if (event.key === "ArrowUp") {
                 hrac.up = onoff;
             }
@@ -95,6 +90,19 @@
             if (event.key === "ArrowRight") {
                 hrac.right = onoff;
             }
+            //WASD
+            if (event.key.toLowerCase() === "w") {
+                hrac.up = onoff;
+            }
+            if (event.key.toLowerCase() === "s") {
+                hrac.down = onoff;
+            }
+            if (event.key.toLowerCase() === "a") {
+                hrac.left = onoff;
+            }
+            if (event.key.toLowerCase() === "d") {
+                hrac.right = onoff;
+            }
         }
         function onKeyDown(event) {
             setMove(event, true);
@@ -102,15 +110,22 @@
         function onKeyUp(event) {
             setMove(event, false);
         }
+        function onKeyUpJmeno(event) {
+            if (event.key === "Enter") {
+                pripojitDoHry();
+            }
+        }
+
     </script>
 </head>
-<body onload="spustPoNacteni()" onkeydown="onKeyDown(event)" onkeyup="onKeyUp(event)">
+<body onload="spustPoNacteni()">
 
-<h1>Příklad použití modulu <a href="https://github.com/liborsvejda/spaserver" target="_blank">spaserver</a></h1>
-
-Dnes je <span id="den">...</span> <span id="datum">...</span>.
-<br><br>
-<img src="res/nodejs.png" height="32" title="obrázek">
+<h1>Hra na babu :-)</h1>
+<i>
+    Připoj se do hry a snaž se vyhýbat hráči, který má babu (ten s černým okrajem). A když už babu dostaneš, tak se snaž s ní strávit co nejkratší dobu.
+    <br>
+    Ovládání: WASD a kurzorové klávesy.
+</i>
 <br><br>
 
 Jméno: <input type="text" id="jmeno"><input type="button" value="Připojit do hry" onclick="pripojitDoHry()"><br>
