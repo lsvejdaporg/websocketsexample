@@ -52,6 +52,10 @@
 
             connection = new WebSocket(WS_HOST); //sestavi se pripojeni
             connection.onmessage = e => {
+                if (e.data.startsWith("#")) {
+                    console.log(e.data);
+                    return;
+                }
                 //ze serveru chodi jediny typ zpravy, a to seznam vsech hracu jako JSON
                 let hraci = JSON.parse(e.data);
                 //vycisti se hraci plocha

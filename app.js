@@ -14,6 +14,8 @@ const API_HEAD = {
 const API_STATUS_OK = 0;
 const API_STATUS_NOT_FOUND = -1;
 
+let hraciWs = new Array(); //pole WS klientu hracu podle uid
+
 function processApi(req, res) {
     console.log(req.pathname);
     res.writeHead(200, API_HEAD);
@@ -45,6 +47,7 @@ wss.on('connection', ws => {
     ws.on('message', message => { //prijem zprav
         // console.log(`Přijatá zpráva: ${message}`);
         let posunHrace = JSON.parse(message);
+        hraciWs[posunHrace.uid] = ws;
         let hrac = najdiHrace(posunHrace.uid);
         if (posunHrace.up) hrac.y -= 2;
         if (posunHrace.down) hrac.y += 2;
@@ -101,6 +104,14 @@ function broadcast() {
             client.send(json);
         }
     });
+    let cnt = 0;
+    for (let uid of uidVsechHracu()) { //projdu vsechny uid hracu
+        if (hraciWs[uid]) {
+            hraciWs[uid].send("#test");
+        }
+        cnt++;
+        if (cnt == 2) break; //posilam "#test" jen prvnim dvema - viz console v prohlizeci
+    }
     broadcasting = false;
 }
 setInterval(broadcast, 10);
